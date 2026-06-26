@@ -58,6 +58,8 @@
     .chip.sel-b { background: #e4ecfc; border-color: #36c; color: #36c; font-weight: bold; }
 
     button { font-family: monospace; padding: 4px 10px; cursor: pointer; }
+    #dir-left, #dir-right { transition: background 0.04s, transform 0.04s; }
+    #dir-left:active, #dir-right:active { background: #ddd; transform: scale(0.92); }
     button.primary { background: #36c; color: white; border: 1px solid #25a; }
     button.primary:hover { background: #25a; }
     #cmd { font-family: monospace; padding: 4px; width: 22ch; }
@@ -85,8 +87,7 @@
 </head>
 <body>
   <h1>4D cube — rotation playground &amp; match-the-target game
-    <button onclick="showHelp()" style="font-size:10px; margin-left:12px; padding:1px 6px; vertical-align:middle;">help &amp; math</button>
-    <button onclick="showHelp()" style="font-size:10px; margin-left:4px; padding:1px 6px; vertical-align:middle;">feedback</button>
+    <button onclick="showHelp()" style="font-size:10px; margin-left:12px; padding:1px 6px; vertical-align:middle;">help</button>
   </h1>
 
   <div id="root">
@@ -102,10 +103,9 @@
         </div>
       </div>
 
-      <div style="text-align:center; margin:4px 0; font-size:11px;">
-        <button id="dir-left" style="padding:2px 8px; font-family:monospace;">← Left</button>
-        <button id="dir-stop" style="padding:2px 8px; font-family:monospace;">Stop</button>
-        <button id="dir-right" style="padding:2px 8px; font-family:monospace;">Right →</button>
+      <div style="margin:4px 0 6px; display:flex; gap:6px; align-items:center;">
+        <button id="dir-left" style="width:68px; height:68px; font-size:34px; line-height:1; border:2px solid #666; border-radius:8px; background:#f0f0f0; margin:2px; touch-action:none; user-select:none;">←</button>
+        <button id="dir-right" style="width:68px; height:68px; font-size:34px; line-height:1; border:2px solid #666; border-radius:8px; background:#f0f0f0; margin:2px; touch-action:none; user-select:none;">→</button>
       </div>
 
       <div id="depth-legend">
@@ -748,10 +748,36 @@ speedSlider.addEventListener('input', e => {
   speedVal.textContent = deg.toFixed(2) + '°/f';
 });
 
-// Direction buttons (click to set, useful for mobile)
-document.getElementById('dir-left').addEventListener('click', () => { arrowDir = -1; updateUI(); });
-document.getElementById('dir-stop').addEventListener('click', () => { arrowDir = 0; updateUI(); });
-document.getElementById('dir-right').addEventListener('click', () => { arrowDir = +1; updateUI(); });
+// Direction buttons (left under cube): big squares, hold down continuously to rotate.
+// Only for mobile (simplifies main tick loop: unified arrowDir state).
+const dirLeft = document.getElementById('dir-left');
+const dirRight = document.getElementById('dir-right');
+
+function setDirection(dir) {
+  arrowDir = dir;
+  updateUI();
+}
+
+function stopDirection() {
+  arrowDir = 0;
+  updateUI();
+}
+
+// Left hold
+dirLeft.addEventListener('mousedown', () => setDirection(-1));
+dirLeft.addEventListener('mouseup', stopDirection);
+dirLeft.addEventListener('mouseleave', stopDirection);
+dirLeft.addEventListener('touchstart', (e) => { e.preventDefault(); setDirection(-1); }, {passive: false});
+dirLeft.addEventListener('touchend', (e) => { e.preventDefault(); stopDirection(); });
+dirLeft.addEventListener('touchcancel', stopDirection);
+
+// Right hold
+dirRight.addEventListener('mousedown', () => setDirection(+1));
+dirRight.addEventListener('mouseup', stopDirection);
+dirRight.addEventListener('mouseleave', stopDirection);
+dirRight.addEventListener('touchstart', (e) => { e.preventDefault(); setDirection(+1); }, {passive: false});
+dirRight.addEventListener('touchend', (e) => { e.preventDefault(); stopDirection(); });
+dirRight.addEventListener('touchcancel', stopDirection);
 
 // ============= K4 graph: click edges to select planes =============
 const NODE_POS = {
@@ -1214,7 +1240,7 @@ document.addEventListener('keydown', (e) => {
 <!-- Help modal -->
 <div id="help-modal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); width:90%; max-width:720px; background:white; border:2px solid #333; border-radius:8px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:9999; font-family:monospace; font-size:13px; color:#222; max-height:75vh; overflow:auto;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-    <strong style="font-size:14px;">Controls &amp; Mathematics</strong>
+    <strong style="font-size:14px;">Help (Controls, Math &amp; Feedback)</strong>
     <button onclick="closeHelp()" style="font-size:12px;">Close (Esc)</button>
   </div>
 
@@ -1226,7 +1252,7 @@ document.addEventListener('keydown', (e) => {
     • <b>Hold 1–4</b> → momentary override (yellow highlight on nodes)<br>
     • <b>If keys aren't working:</b> Check for browser extensions that intercept keyboard input (e.g. Vimium, Vimium C, or other vim/emacs mode extensions). Try disabling them for this site. Mouse and arrow keys should still work.
     • <b>Hold -</b> while overriding → negative for that plane<br>
-    • <b>← / →</b> → rotate (direction)<br>
+    • <b>← / →</b> keys or the big on-screen square hold buttons (left of/ under view) → rotate while held (mobile-friendly); release to stop<br>
     • <b>Esc</b> → clear selection<br>
     • Command box: e.g. <code>12 right</code>, <code>1234 left</code>, <code>stop</code>, <code>reset</code><br>
     • <b>H</b> or <b>?</b> → toggle this help
