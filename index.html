@@ -39,6 +39,7 @@
                   background: rgba(255,255,255,0.8); padding: 0 3px; border-radius: 2px; }
     .tile.active-a { border-color: #d33; border-width: 2px; padding: 1px; }
     .tile.active-b { border-color: #36c; border-width: 2px; padding: 1px; }
+    #target-tiles .tile { border-style: dashed; border-color: #888; }
 
     .panel-card { background: white; padding: 10px 14px; border: 1px solid #ddd; border-radius: 4px; }
     #interp { font-size: 16px; min-height: 1.4em; }
@@ -120,12 +121,19 @@
 
       <div id="tiles-section">
         <div style="font-size:11px; color:#666; margin-bottom:2px">
-          coordinate-plane projections — each picks out 2 of the 4 axes directly
+          your coordinate-plane projections — each picks out 2 of the 4 axes directly
         </div>
         <div style="font-size:9px; color:#888; margin-bottom:4px; line-height:1.3">
           to switch: unselect current first (click tile or Esc); can select pair of non-overlapping axes at a time
         </div>
         <div id="tiles"></div>
+      </div>
+
+      <div id="target-tiles-section" style="display:none; margin-top:8px; border-top:1px solid #eee; padding-top:4px;">
+        <div style="font-size:10px; color:#666; margin-bottom:2px">
+          target coordinate-plane projections (compare to yours)
+        </div>
+        <div id="target-tiles" style="display:flex; gap:4px; flex-wrap:wrap;"></div>
       </div>
     </div>
 
@@ -430,6 +438,27 @@ const tiles = coordPlanes.map(([i, j], idx) => {
   return { wrap, svg, lines: ml.lines, gradients: ml.gradients, plane: [i, j], proj: coordProjection(i, j) };
 });
 
+// Target tiles (read-only, shown during game for direct comparison)
+const TARGET_TILE_SIZE = 70, TARGET_TILE_SCALE = 15, TARGET_TILE_OFFSET = TARGET_TILE_SIZE / 2;
+const targetTilesEl = document.getElementById('target-tiles');
+const targetTiles = [];
+coordPlanes.forEach(([i, j], idx) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'tile';
+  wrap.style.cursor = 'default';
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', TARGET_TILE_SIZE);
+  svg.setAttribute('height', TARGET_TILE_SIZE);
+  wrap.appendChild(svg);
+  const label = document.createElement('div');
+  label.className = 'tile-label';
+  label.textContent = `(${i+1},${j+1})`;
+  wrap.appendChild(label);
+  targetTilesEl.appendChild(wrap);
+  const ml = makeLines(svg, edges.length, `tt${idx}`);
+  targetTiles.push({ wrap, svg, lines: ml.lines, gradients: ml.gradients, plane: [i, j], proj: coordProjection(i, j) });
+});
+
 // ============= Drawing =============
 // Color a vertex by depth = distance from the 2D viewing plane in 4D.
 // Tesseract vertices always have |v|² = 4, so max depth = 2; we scale on that.
@@ -481,6 +510,9 @@ function drawAll() {
   if (gameOn) {
     const v_t = applyR(R_target, v_init);
     drawWithDepth(mainTarget, v_t, mainProjection, MAIN_SCALE, MAIN_OFFSET);
+    for (const t of targetTiles) {
+      drawWithDepth(t, v_t, t.proj, TARGET_TILE_SCALE, TARGET_TILE_OFFSET);
+    }
   }
   renderMatrix(R_user,   document.getElementById('matrix-user'));
   if (gameOn) {
@@ -643,6 +675,7 @@ document.getElementById('game-toggle').addEventListener('click', () => {
   document.getElementById('game-toggle').textContent = gameOn ? 'disable' : 'enable';
   document.getElementById('target-vbox').style.display = gameOn ? '' : 'none';
   document.getElementById('game-body').style.display = gameOn ? '' : 'none';
+  document.getElementById('target-tiles-section').style.display = gameOn ? '' : 'none';
   document.getElementById('user-caption').textContent = gameOn
     ? 'YOUR rotation — match the target →'
     : 'generic 2-frame projection — all 4 axes mixed';
@@ -660,6 +693,7 @@ document.getElementById('game-toggle').addEventListener('click', () => {
     // Restore visibility when game off
     document.getElementById('tiles-section').style.display    = '';
     document.getElementById('matrix-user-card').style.display = '';
+    document.getElementById('target-tiles-section').style.display = 'none';
     const tEl = document.getElementById('time-val');
     if (tEl) tEl.textContent = '—';
   }
