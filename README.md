@@ -40,7 +40,7 @@ The page is two columns:
 ### Right column (panel)
 
 1. **State card** — text describing the current rotation: e.g. `+(0,1) ⊕ −(2,3)  →  Clifford [right-isoclinic]`.
-2. **Axis-pair selector** — a drawing of `K₄` (the complete graph on 4 nodes labeled 0–3). The 6 edges of K₄ map bijectively onto the 6 elements of `𝔰𝔬(4)`'s basis. Click an edge to select that rotation plane. Two disjoint edges = a Clifford pair (perfect matchings of K₄ are exactly the 3 Clifford pairings). Plus a speed slider, default 1.5°/frame.
+2. **Axis-pair selector** — a drawing of `K₄` (the complete graph on 4 nodes labeled 1–4). The 6 edges of K₄ map bijectively onto the 6 elements of `𝔰𝔬(4)`'s basis. Click an edge to select that rotation plane. Two disjoint edges = a Clifford pair (perfect matchings of K₄ are exactly the 3 Clifford pairings). Plus a speed slider, default 1.5°/frame.
 3. **User rotation matrix** — live 4 × 4 `R_user` rendered as a color-tinted grid. Blue tint = positive entry, red tint = negative, opacity = magnitude.
 4. **Match game card** — see below.
 5. **Command box** — text-driven entry: `01 right`, `0213 left`, `stop`, `reset`. Useful for scripting / repeat-experiments.
@@ -99,7 +99,7 @@ Each level: hit 3 matches to auto-advance. Match condition: Frobenius distance `
 
 ## Gotchas
 
-- **Vimium (and similar extensions) swallow digit keys.** If keybindings for selecting axes (0–3 etc.) aren't working, check for browser extensions that intercept keyboard shortcuts (e.g. Vimium, Vimium C, Surfingkeys, or other vim/emacs-style extensions). Disable them for this domain or pause the extension on the page. Mouse clicks and arrow keys should continue to work as a fallback.
+- **Vimium (and similar extensions) swallow digit keys.** If keybindings for selecting axes (1–4 etc.) aren't working, check for browser extensions that intercept keyboard shortcuts (e.g. Vimium, Vimium C, Surfingkeys, or other vim/emacs-style extensions). Disable them for this domain or pause the extension on the page. Mouse clicks and arrow keys should continue to work as a fallback.
 - The in-game Help panel (click "help & math" or press H / ?) also reminds users of this.
 - **Don't open via `file://`** — at least when using the Claude-in-Chrome MCP, the URL bar's protocol-rewrite breaks the load. Serve via `python3 -m http.server 8765` from this directory.
 

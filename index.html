@@ -139,7 +139,7 @@
           Click a selected edge with <b>Shift</b> or <b><kbd>-</kbd></b> → flip its sign<br>
           <b><kbd>Tab</kbd></b> / <b><kbd>Shift</kbd>+<kbd>Tab</kbd></b> → cycle planes linearly<br>
           Two disjoint edges = Clifford. Hold <kbd>←</kbd>/<kbd>→</kbd> to rotate. <kbd>Esc</kbd> clears.<br>
-          <b>Hold <kbd>0</kbd>–<kbd>3</kbd></b> for momentary override (held nodes glow yellow).<br>
+          <b>Hold <kbd>1</kbd>–<kbd>4</kbd></b> for momentary override (held nodes glow yellow).<br>
           <b>Hold <kbd>-</kbd></b> while overriding → use negative coefficient.
         </div>
         <div style="margin-top:10px">
@@ -193,7 +193,7 @@
         <h2>command</h2>
         <form id="cmd-form">
           <input id="cmd" type="text"
-            placeholder="01 right · 0123 right · stop · reset"
+            placeholder="12 right · 1234 right · stop · reset"
             autocomplete="off">
           <button type="submit">go</button>
           <button type="button" id="stop-btn">stop</button>
@@ -375,7 +375,7 @@ const tiles = coordPlanes.map(([i, j], idx) => {
   wrap.appendChild(svg);
   const label = document.createElement('div');
   label.className = 'tile-label';
-  label.textContent = `(${i},${j})`;
+  label.textContent = `(${i+1},${j+1})`;
   wrap.appendChild(label);
   tilesEl.appendChild(wrap);
   // Clicking a tile selects/deselects its rotation plane (same semantics as K4 edge)
@@ -626,7 +626,7 @@ document.getElementById('next-level-btn').addEventListener('click', () => {
 
 // ============= Input =============
 let dt = 1.5 * Math.PI / 180;
-let heldDigits = [];   // axes momentarily held; overrides persistent selection when length is 2 or 4
+let heldDigits = [];   // axes momentarily held (internal 0-3); overrides persistent selection when length is 2 or 4
 let negateHeld = false;  // '-' or '_' currently held → acts like Shift modifier
 
 function isNegateKey(e) {
@@ -634,18 +634,15 @@ function isNegateKey(e) {
       || e.code === 'Minus' || e.code === 'NumpadSubtract';
 }
 // Robust digit detection: try .key first, then fall back to .code so that
-// Shift+digit (e.key=')!@#') and Numpad digits still map correctly.
-// Backtick (`) and its physical key (Backquote) also map to 0 — convenient for
-// alt layouts where ` sits where 0 would be on QWERTY.
+// Shift+digit and Numpad digits still map correctly.
+// Axes are labeled 1-4 for users (maps to internal 0-3).
 function digitFromEvent(e) {
-  if (e.key === '`' || e.key === '~') return 0;
-  if (e.code === 'Backquote') return 0;
-  if (e.key && e.key.length === 1 && e.key >= '0' && e.key <= '3') return parseInt(e.key);
+  if (e.key && e.key.length === 1 && e.key >= '1' && e.key <= '4') return parseInt(e.key) - 1;
   if (e.code) {
-    let m = e.code.match(/^Digit([0-3])$/);
-    if (m) return parseInt(m[1]);
-    m = e.code.match(/^Numpad([0-3])$/);
-    if (m) return parseInt(m[1]);
+    let m = e.code.match(/^Digit([1-4])$/);
+    if (m) return parseInt(m[1]) - 1;
+    m = e.code.match(/^Numpad([1-4])$/);
+    if (m) return parseInt(m[1]) - 1;
   }
   return null;
 }
@@ -811,7 +808,7 @@ function buildK4() {
     txt.setAttribute('font-family', 'monospace');
     txt.style.userSelect = 'none';
     txt.style.pointerEvents = 'none';
-    txt.textContent = d;
+    txt.textContent = parseInt(d) + 1;
     nodesG.appendChild(circ); nodesG.appendChild(txt);
     nodeCircles[parseInt(d)] = circ;
   }
@@ -926,7 +923,7 @@ buildK4();
 
 // ============= Interp / chip / tile highlights =============
 const interpEl = document.getElementById('interp');
-function fmtPlane(i, j, cls) { return `<span class="${cls}">(${i}, ${j})</span>`; }
+function fmtPlane(i, j, cls) { return `<span class="${cls}">(${i+1}, ${j+1})</span>`; }
 function dirGlyph() { return arrowDir === 0 ? '·' : arrowDir > 0 ? '→' : '←'; }
 
 function updateUI() {
@@ -950,7 +947,9 @@ function updateUI() {
 
   function signed(idx, cls) {
     const s = eff.signs[idx] < 0 ? '−' : '+';
-    return `<span class="${cls}">${s}(${eff.axes[idx*2]}, ${eff.axes[idx*2+1]})</span>`;
+    const a = eff.axes[idx*2] + 1;
+    const b = eff.axes[idx*2 + 1] + 1;
+    return `<span class="${cls}">${s}(${a}, ${b})</span>`;
   }
   const ovHint = eff.override ? `<span class="dim"> [override]</span>` : '';
   if (n === 2) {
@@ -986,12 +985,12 @@ function applyCommand(line) {
       updateUI(); drawAll(); return 'reset';
     }
   }
-  if (parts.length !== 2) return 'usage: <digits> <dir>  |  stop  |  reset';
+  if (parts.length !== 2) return 'usage: <digits 1-4> <dir>  |  stop  |  reset';
   const digits = parts[0];
   const dir = parseDir(parts[1]);
   if (dir === null) return `bad direction "${parts[1]}"`;
-  if (!/^[0-3]+$/.test(digits)) return `digits must be 0-3, got "${digits}"`;
-  const arr = digits.split('').map(Number);
+  if (!/^[1-4]+$/.test(digits)) return `digits must be 1-4, got "${digits}"`;
+  const arr = digits.split('').map(d => parseInt(d) - 1);
   if (new Set(arr).size !== arr.length) return 'digits must be distinct';
   if (arr.length !== 2 && arr.length !== 4) return `need 2 or 4 digits, got ${arr.length}`;
   selOrder  = arr.slice();
@@ -1067,10 +1066,10 @@ const REPO_CONTEXT = `Project: 4D Cube Rotation Playground & Match Game (self-co
 
 Key concepts from README:
 - Interactive 4D tesseract (16 vertices, edges via single bit flips).
-- 6 planes in SO(4): pairs (0,1),(0,2),...,(2,3).
+- 6 planes in SO(4): pairs (1,2),(1,3),...,(3,4) [user-facing 1-4].
 - Main generic projection + 6 coordinate-plane diagnostic "tiles".
 - Depth coloring: hsl based on distance to viewing plane.
-- K4 graph + tiles for selecting rotation planes (persistent + momentary hold 0-3).
+- K4 graph + tiles for selecting rotation planes (persistent + momentary hold 1-4).
 - Clifford pairs for isoclinic rotations.
 - 7-level match game (progressively hide tiles/matrix).
 - Efficiency = par_deg / your_deg , stars for high efficiency.
@@ -1091,7 +1090,7 @@ Projections: mainProjection and coordProjection(i,j).
 State: R_user, R_target (4x4), selOrder, edgeSigns, heldDigits.
 Drawing uses SVG lines with linear gradients for depth.
 Game: LEVELS array with 7 levels, randomRotationMatrix, match when frobenius < 0.10.
-Input: clickEdge, handleKeydown for hold digits and arrows.
+Input: clickEdge, handleKeydown for hold digits 1-4 and arrows.
 
 The entire interactive experience (including this help) is inside this one HTML file.`;
 
@@ -1186,17 +1185,7 @@ setTimeout(() => {
   }
 }, 500);
 
-// Close on escape or outside click (already there, extend if needed)
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'h' || e.key === 'H' || e.key === '?') {
-    const m = document.getElementById('help-modal');
-    if (m) m.style.display = (m.style.display === 'block') ? 'none' : 'block';
-  }
-  if (e.key === 'Escape') {
-    const m = document.getElementById('help-modal');
-    if (m && m.style.display === 'block') m.style.display = 'none';
-  }
-});
+// Close on escape or outside click
 document.addEventListener('keydown', (e) => {
   if (e.key === 'h' || e.key === 'H' || e.key === '?') {
     const m = document.getElementById('help-modal');
@@ -1221,18 +1210,18 @@ document.addEventListener('keydown', (e) => {
     • <b>Click</b> K₄ edges or tiles → select rotation plane (persistent)<br>
     • <b>Shift-click</b> or <b>hold - + click</b> → negative sign (dashed)<br>
     • <b>Tab / Shift+Tab</b> → cycle planes<br>
-    • <b>Hold 0–3</b> (or ` for 0) → momentary override (yellow highlight on nodes)<br>
+    • <b>Hold 1–4</b> → momentary override (yellow highlight on nodes)<br>
     • <b>If keys aren't working:</b> Check for browser extensions that intercept keyboard input (e.g. Vimium, Vimium C, or other vim/emacs mode extensions). Try disabling them for this site. Mouse and arrow keys should still work.
     • <b>Hold -</b> while overriding → negative for that plane<br>
     • <b>← / →</b> → rotate (direction)<br>
     • <b>Esc</b> → clear selection<br>
-    • Command box: e.g. <code>01 right</code>, <code>0123 left</code>, <code>stop</code>, <code>reset</code><br>
+    • Command box: e.g. <code>12 right</code>, <code>1234 left</code>, <code>stop</code>, <code>reset</code><br>
     • <b>H</b> or <b>?</b> → toggle this help
   </div>
 
   <div>
     <strong>Mathematics (LaTeX)</strong>
-    <p>The 4D rotation group SO(4) is generated by 6 planes: pairs from {0,1,2,3}.</p>
+    <p>The 4D rotation group SO(4) is generated by 6 planes: pairs from {1,2,3,4} (user labels 1-4, internal 0-3).</p>
     <p>A rotation in plane \((i,j)\) by angle \(\theta\) is the block matrix</p>
     \[
     R_{ij}(\theta) = 
