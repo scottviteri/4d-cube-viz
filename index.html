@@ -102,6 +102,36 @@
         </div>
       </div>
 
+      <div class="panel-card">
+        <h2>axis-pair selector (K<sub>4</sub>)</h2>
+        <svg id="k4" width="280" height="200" xmlns="http://www.w3.org/2000/svg"
+             style="display:block; margin:0 auto; background:#fafafa; border-radius:4px">
+          <g id="k4-edges"></g>
+          <g id="k4-nodes"></g>
+        </svg>
+        <div class="keys hint" style="margin-top:6px">
+          <b>Click an edge</b> (here) <b>or a coord-plane tile</b> → select that rotation plane<br>
+          <b>Shift-click</b> or <b>hold <kbd>-</kbd>+click</b> → negative coefficient (dashed)<br>
+          Click a selected edge with <b>Shift</b> or <b><kbd>-</kbd></b> → flip its sign<br>
+          <b><kbd>Tab</kbd></b> / <b><kbd>Shift</kbd>+<kbd>Tab</kbd></b> → cycle planes linearly<br>
+          Two disjoint edges = Clifford. Hold <kbd>←</kbd>/<kbd>→</kbd> to rotate. <kbd>Esc</kbd> clears.<br>
+          <b>Hold <kbd>1</kbd>–<kbd>4</kbd></b> for momentary override (held nodes glow yellow).<br>
+          <b>Hold <kbd>-</kbd></b> while overriding → use negative coefficient.
+        </div>
+        <div style="text-align:center; margin:4px 0; font-size:11px;">
+          <button id="dir-left" style="padding:2px 8px; font-family:monospace;">← Left</button>
+          <button id="dir-stop" style="padding:2px 8px; font-family:monospace;">Stop</button>
+          <button id="dir-right" style="padding:2px 8px; font-family:monospace;">Right →</button>
+        </div>
+        <div style="margin-top:10px">
+          <label style="font-size:11px; color:#666; display:flex; align-items:center; gap:8px">
+            <span>speed</span>
+            <input type="range" id="speed" min="0.05" max="3.0" step="0.05" value="1.5" style="flex:1">
+            <span id="speed-val" style="font-family:monospace; min-width:6ch; text-align:right">1.50°/f</span>
+          </label>
+        </div>
+      </div>
+
       <div id="depth-legend">
         <div class="bar"></div>
         <div class="ticks">
@@ -126,30 +156,7 @@
         <div id="interp"></div>
       </div>
 
-      <div class="panel-card">
-        <h2>axis-pair selector (K<sub>4</sub>)</h2>
-        <svg id="k4" width="280" height="200" xmlns="http://www.w3.org/2000/svg"
-             style="display:block; margin:0 auto; background:#fafafa; border-radius:4px">
-          <g id="k4-edges"></g>
-          <g id="k4-nodes"></g>
-        </svg>
-        <div class="keys hint" style="margin-top:6px">
-          <b>Click an edge</b> (here) <b>or a coord-plane tile</b> → select that rotation plane<br>
-          <b>Shift-click</b> or <b>hold <kbd>-</kbd>+click</b> → negative coefficient (dashed)<br>
-          Click a selected edge with <b>Shift</b> or <b><kbd>-</kbd></b> → flip its sign<br>
-          <b><kbd>Tab</kbd></b> / <b><kbd>Shift</kbd>+<kbd>Tab</kbd></b> → cycle planes linearly<br>
-          Two disjoint edges = Clifford. Hold <kbd>←</kbd>/<kbd>→</kbd> to rotate. <kbd>Esc</kbd> clears.<br>
-          <b>Hold <kbd>1</kbd>–<kbd>4</kbd></b> for momentary override (held nodes glow yellow).<br>
-          <b>Hold <kbd>-</kbd></b> while overriding → use negative coefficient.
-        </div>
-        <div style="margin-top:10px">
-          <label style="font-size:11px; color:#666; display:flex; align-items:center; gap:8px">
-            <span>speed</span>
-            <input type="range" id="speed" min="0.05" max="3.0" step="0.05" value="1.5" style="flex:1">
-            <span id="speed-val" style="font-family:monospace; min-width:6ch; text-align:right">1.50°/f</span>
-          </label>
-        </div>
-      </div>
+
 
       <div class="panel-card" id="matrix-user-card">
         <h2>user rotation matrix R</h2>
@@ -739,6 +746,11 @@ speedSlider.addEventListener('input', e => {
   dt = deg * Math.PI / 180;
   speedVal.textContent = deg.toFixed(2) + '°/f';
 });
+
+// Direction buttons (click to set, useful for mobile)
+document.getElementById('dir-left').addEventListener('click', () => { arrowDir = -1; updateUI(); });
+document.getElementById('dir-stop').addEventListener('click', () => { arrowDir = 0; updateUI(); });
+document.getElementById('dir-right').addEventListener('click', () => { arrowDir = +1; updateUI(); });
 
 // ============= K4 graph: click edges to select planes =============
 const NODE_POS = {
