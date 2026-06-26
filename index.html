@@ -133,7 +133,7 @@
         <div style="font-size:10px; color:#666; margin-bottom:2px">
           target coordinate-plane projections (compare to yours)
         </div>
-        <div id="target-tiles" style="display:flex; gap:4px; flex-wrap:wrap;"></div>
+        <div id="target-tiles" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
       </div>
     </div>
 
@@ -438,8 +438,7 @@ const tiles = coordPlanes.map(([i, j], idx) => {
   return { wrap, svg, lines: ml.lines, gradients: ml.gradients, plane: [i, j], proj: coordProjection(i, j) };
 });
 
-// Target tiles (read-only, shown during game for direct comparison)
-const TARGET_TILE_SIZE = 70, TARGET_TILE_SCALE = 15, TARGET_TILE_OFFSET = TARGET_TILE_SIZE / 2;
+// Target tiles (read-only, shown during game for direct comparison; same size as user tiles for easy visual matching)
 const targetTilesEl = document.getElementById('target-tiles');
 const targetTiles = [];
 coordPlanes.forEach(([i, j], idx) => {
@@ -447,8 +446,8 @@ coordPlanes.forEach(([i, j], idx) => {
   wrap.className = 'tile';
   wrap.style.cursor = 'default';
   const svg = document.createElementNS(SVGNS, 'svg');
-  svg.setAttribute('width', TARGET_TILE_SIZE);
-  svg.setAttribute('height', TARGET_TILE_SIZE);
+  svg.setAttribute('width', TILE_SIZE);
+  svg.setAttribute('height', TILE_SIZE);
   wrap.appendChild(svg);
   const label = document.createElement('div');
   label.className = 'tile-label';
@@ -511,7 +510,7 @@ function drawAll() {
     const v_t = applyR(R_target, v_init);
     drawWithDepth(mainTarget, v_t, mainProjection, MAIN_SCALE, MAIN_OFFSET);
     for (const t of targetTiles) {
-      drawWithDepth(t, v_t, t.proj, TARGET_TILE_SCALE, TARGET_TILE_OFFSET);
+      drawWithDepth(t, v_t, t.proj, TILE_SCALE, TILE_OFFSET);
     }
   }
   renderMatrix(R_user,   document.getElementById('matrix-user'));
