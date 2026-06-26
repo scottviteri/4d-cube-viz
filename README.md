@@ -103,6 +103,14 @@ Each level: hit 3 matches to auto-advance. Match condition: Frobenius distance `
 - The in-game Help panel (click "help & math" or press H / ?) also reminds users of this.
 - **Don't open via `file://`** — at least when using the Claude-in-Chrome MCP, the URL bar's protocol-rewrite breaks the load. Serve via `python3 -m http.server 8765` from this directory.
 
+## Feedback
+
+Feature requests, suggestions, or bugs? Please open an issue on GitHub:
+
+https://github.com/scottviteri/4d-cube-viz/issues/new
+
+This link takes you straight to the new issue form.
+
 ## Why "Ideas" and not "Active"
 
 It's a tab that's gotten substantial code but still doesn't have a *use case* beyond personal exploration. If the no-tile levels turn out to actually build 4D intuition that transfers (e.g., to thinking about quaternions, or to other geometric/physics contexts), it could justify a polish pass and a public web home. For now it lives here as a thing to come back to.
