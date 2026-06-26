@@ -99,7 +99,8 @@ Each level: hit 3 matches to auto-advance. Match condition: Frobenius distance `
 
 ## Gotchas
 
-- **Vimium swallows digit keys.** If you use Vimium (or any Chrome keyboard-navigation extension that captures digit prefixes), the digit-hold override silently does nothing — you'll see no yellow glow on K₄ nodes when pressing `0`–`3`. Disable Vimium for the host domain or pause it on this page. Mouse and arrow keys still work.
+- **Vimium (and similar extensions) swallow digit keys.** If keybindings for selecting axes (0–3 etc.) aren't working, check for browser extensions that intercept keyboard shortcuts (e.g. Vimium, Vimium C, Surfingkeys, or other vim/emacs-style extensions). Disable them for this domain or pause the extension on the page. Mouse clicks and arrow keys should continue to work as a fallback.
+- The in-game Help panel (click "help & math" or press H / ?) also reminds users of this.
 - **Don't open via `file://`** — at least when using the Claude-in-Chrome MCP, the URL bar's protocol-rewrite breaks the load. Serve via `python3 -m http.server 8765` from this directory.
 
 ## Why "Ideas" and not "Active"

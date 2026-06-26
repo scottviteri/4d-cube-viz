@@ -86,6 +86,7 @@
 <body>
   <h1>4D cube — rotation playground &amp; match-the-target game
     <button onclick="showHelp()" style="font-size:10px; margin-left:12px; padding:1px 6px; vertical-align:middle;">help &amp; math</button>
+    <button onclick="showHelp(); setTimeout(() => document.getElementById('fb-message')?.focus(), 100)" style="font-size:10px; margin-left:4px; padding:1px 6px; vertical-align:middle;">feedback</button>
   </h1>
 
   <div id="root">
@@ -1017,6 +1018,20 @@ function closeHelp() {
   if (modal) modal.style.display = 'none';
 }
 
+function sendFeedback(e) {
+  e.preventDefault();
+  const type = document.getElementById('fb-type').value;
+  const msg = (document.getElementById('fb-message').value || '(no message)').trim();
+  const subject = encodeURIComponent(`4D Cube Feedback: ${type}`);
+  const body = encodeURIComponent(`Type: ${type}\n\n${msg}\n\n---\nURL: ${location.href}\nUser Agent: ${navigator.userAgent}`);
+  window.location.href = `mailto:scottviteri@stanford.edu?subject=${subject}&body=${body}`;
+  const status = document.getElementById('fb-status');
+  if (status) {
+    status.textContent = 'Opening email...';
+    setTimeout(() => { status.textContent = ''; }, 3000);
+  }
+}
+
 // Close on escape or outside click
 document.addEventListener('keydown', (e) => {
   if (e.key === 'h' || e.key === 'H' || e.key === '?') {
@@ -1043,6 +1058,7 @@ document.addEventListener('keydown', (e) => {
     • <b>Shift-click</b> or <b>hold - + click</b> → negative sign (dashed)<br>
     • <b>Tab / Shift+Tab</b> → cycle planes<br>
     • <b>Hold 0–3</b> (or ` for 0) → momentary override (yellow highlight on nodes)<br>
+    • <b>If keys aren't working:</b> Check for browser extensions that intercept keyboard input (e.g. Vimium, Vimium C, or other vim/emacs mode extensions). Try disabling them for this site. Mouse and arrow keys should still work.
     • <b>Hold -</b> while overriding → negative for that plane<br>
     • <b>← / →</b> → rotate (direction)<br>
     • <b>Esc</b> → clear selection<br>
@@ -1076,6 +1092,29 @@ document.addEventListener('keydown', (e) => {
 
   <div style="margin-top:10px; font-size:11px; color:#666;">
     Full tour and more in the source README (4DCubeVizGame/README.md).
+  </div>
+
+  <hr style="margin: 12px 0;">
+
+  <div>
+    <strong>Feedback</strong><br>
+    <form id="feedback-form" onsubmit="sendFeedback(event)" style="margin-top:6px;">
+      <label style="display:block; margin-bottom:4px;">
+        Issue / What you were doing:
+        <select id="fb-type" style="font-family:monospace; margin-left:4px;">
+          <option value="keybindings">Keybindings not working</option>
+          <option value="gameplay">Gameplay / match issue</option>
+          <option value="visuals">Visuals / math</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <textarea id="fb-message" placeholder="Describe what happened or your suggestion..." rows="3" style="width:100%; font-family:monospace; box-sizing:border-box;"></textarea>
+      <button type="submit" style="margin-top:6px; font-family:monospace;">Send via Email</button>
+      <span id="fb-status" style="margin-left:8px; font-size:11px; color:#555;"></span>
+    </form>
+    <div style="font-size:10px; color:#888; margin-top:4px;">
+      This opens your email client with the details pre-filled (sent to scottviteri@stanford.edu). You can also star the repo or open an issue on GitHub.
+    </div>
   </div>
 </div>
 
