@@ -36,6 +36,7 @@ The page is two columns:
 4. **6 coordinate-plane tiles** in a 1 × 6 strip — labeled `(0,1), (0,2), (0,3), (1,2), (1,3), (2,3)`. Tile `(i,j)` projects directly onto coordinates `i` and `j`, ignoring the other two. Diagnostic properties:
    - Rotation in plane `(i,j)`: tile `(i,j)` moves, tile `(k,l)` (the disjoint partner) is **completely frozen** (both position and color), the four mixed tiles change partially.
    - Tiles are themselves clickable — click a tile to select its plane.
+3. **Hold buttons** — two large square ← → buttons under the main view (left column). Hold (mouse or touch) to continuously rotate in the selected plane. Release stops. Designed for mobile; tapping/holding drives arrowDir directly into the simple unified tick loop.
 
 ### Right column (panel)
 
@@ -52,7 +53,7 @@ The user has **two state surfaces**:
 - **Persistent selection** — set via mouse (K₄ edge or tile click). Stays put. Carries signs for each plane (positive = solid line, negative = dashed). Stored as `selOrder` (axes in click order) + `edgeSigns`.
 - **Momentary override** — set via held digit keys `0`–`3` (or backtick `` ` `` which also maps to 0 for keyboards where it's positioned there). Overrides the persistent selection while held, snaps back when released. Held nodes glow yellow in the K₄ graph in real time.
 
-Direction comes from holding arrow keys `←` / `→`. Tab cycles linearly through the 6 planes. Esc clears the persistent selection. Sign negation is via Shift (mouse) or the `-` key (held during any select-or-hold action).
+Direction comes from holding arrow keys `←` / `→` or the large on-screen square hold buttons (under left view; mobile primary). Release or lift stops. Tab cycles linearly through the 6 planes. Esc clears the persistent selection. Sign negation is via Shift (mouse) or the `-` key (held during any select-or-hold action).
 
 Why split persistent + momentary? Because in two-handed play the natural ergonomics is: set up a complex (possibly multi-plane, mixed-sign) configuration with the mouse and then "sample" different planes by holding digit keys with your other hand. The persistent state stays as scaffolding while the override lets you ask "what if?"
 
@@ -81,7 +82,7 @@ A 7-level progression that gradually removes the diagnostic crutches. Enable via
 | 6 | Clifford     | ✗ | ✗ |
 | 7 | generic SO(4)| ✓ | ✓ |
 
-Each level: hit 3 matches to auto-advance. Match condition: Frobenius distance `‖R_user − R_target‖ < 0.10`. Bonus stats per attempt: par (min degrees needed), your degrees, efficiency (`par / your`) with `★`, `★★`, `★★★` tiers at 25 / 50 / 80%.
+Each level: hit 3 matches to auto-advance. (You can manually jump to any previously reached/unlocked level via the ← → buttons.) Match condition: Frobenius distance `‖R_user − R_target‖ < 0.10`. Per-attempt stats: par, your degrees, efficiency. A timer runs while completing a level; the leaderboard/personal best per level is the minimum time to complete all required matches for that level. (Efficiency stars still shown per match.)
 
 ## Known limits
 
