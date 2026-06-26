@@ -179,7 +179,8 @@
           <div class="stat"><span class="label">par</span><span class="val" id="par-val">—</span></div>
           <div class="stat"><span class="label">your degrees</span><span class="val" id="moves-val">0°</span></div>
           <div class="stat"><span class="label">efficiency</span><span class="val" id="eff-val">—</span></div>
-          <div class="stat"><span class="label">your best</span><span class="val" id="best-eff-val">—</span></div>
+          <div class="stat"><span class="label">time</span><span class="val" id="time-val">—</span></div>
+          <div class="stat"><span class="label">best time</span><span class="val" id="best-time-val">—</span></div>
           <div style="display:flex; gap:6px; margin-top:8px">
             <button id="new-target-btn" class="primary">new target</button>
             <button id="restart-level-btn">restart level</button>
@@ -192,7 +193,7 @@
           </div>
           <div class="hint" style="margin-top:6px">
             Match when distance &lt; 0.10. <b>Par</b> = min degrees needed; <b>efficiency</b> = par ÷ your.
-            Your best is saved locally in this browser.
+            Best time to complete the level (min time for the required matches) is saved locally.
           </div>
         </div>
       </div>
@@ -299,6 +300,7 @@ const MATCH_THRESHOLD = 0.10;
 let lastMatched = false;
 
 const LEVELS = [
+  // First levels use single-plane targets ("one axis pair"/2 axes moved from identity)
   { name: '1: single plane · all tools',  kind: 'single',   showTiles: true,  showMatrix: true,  winsToAdvance: 3 },
   { name: '2: single plane · no matrix',  kind: 'single',   showTiles: true,  showMatrix: false, winsToAdvance: 3 },
   { name: '3: single plane · no tiles',   kind: 'single',   showTiles: false, showMatrix: false, winsToAdvance: 3 },
@@ -310,6 +312,9 @@ const LEVELS = [
 let currentLevelIdx = 0;
 let levelWins = 0;
 let currentParRad = 0;
+
+let highestLevelReached = 0;
+let levelStartTime = null;
 
 // Personal bests (per level, using localStorage)
 let personalBests = {};
@@ -324,19 +329,46 @@ function savePersonalBests() {
     localStorage.setItem('4dCubePersonalBests', JSON.stringify(personalBests));
   } catch (e) {}
 }
+function loadHighestLevel() {
+  try {
+    const saved = localStorage.getItem('4dCubeHighestLevel');
+    if (saved !== null) highestLevelReached = parseInt(saved, 10) || 0;
+  } catch (e) {}
+}
+function saveHighestLevel() {
+  try {
+    localStorage.setItem('4dCubeHighestLevel', highestLevelReached);
+  } catch (e) {}
+}
 function updateBestDisplay() {
-  const el = document.getElementById('best-eff-val');
+  const el = document.getElementById('best-time-val');
   if (!el) return;
   const best = personalBests[currentLevelIdx];
-  if (best && best.bestEff > 0) {
-    let s = best.bestEff.toFixed(0) + '%';
-    if (best.bestStars > 0) s += ' ' + '★'.repeat(best.bestStars);
-    el.textContent = s;
+  if (best && typeof best.bestTime === 'number' && isFinite(best.bestTime)) {
+    el.textContent = best.bestTime.toFixed(1) + 's';
   } else {
     el.textContent = '—';
   }
 }
 loadPersonalBests();
+loadHighestLevel();
+
+function startLevelTimer() {
+  levelStartTime = performance.now();
+}
+function getLevelElapsed() {
+  return levelStartTime ? (performance.now() - levelStartTime) / 1000 : 0;
+}
+function updateTimerDisplay() {
+  const el = document.getElementById('time-val');
+  if (!el) return;
+  if (!gameOn || !levelStartTime) {
+    el.textContent = '—';
+    return;
+  }
+  const t = getLevelElapsed();
+  el.textContent = t.toFixed(1) + 's';
+}
 
 // ============= SVG setup =============
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -538,12 +570,15 @@ function updateGameStats() {
     else if (eff >= 25) stars = ' ★';
     document.getElementById('eff-val').textContent = eff.toFixed(0) + '%' + stars;
 
-    // Track personal best
+    // Track personal best (eff per attempt; best time tracked on level completion)
     const key = currentLevelIdx;
-    const currentBest = personalBests[key] || { bestEff: 0 };
-    if (eff > currentBest.bestEff) {
+    let entry = personalBests[key] || {};
+    if (eff > (entry.bestEff || 0)) {
       const numStars = eff >= 80 ? 3 : eff >= 50 ? 2 : eff >= 25 ? 1 : 0;
-      personalBests[key] = { bestEff: eff, bestStars: numStars, bestMoves: yourDeg };
+      entry.bestEff = eff;
+      entry.bestStars = numStars;
+      entry.bestMoves = yourDeg;
+      personalBests[key] = entry;
       savePersonalBests();
     }
   } else {
@@ -566,6 +601,21 @@ function updateGameStats() {
       `${levelWins}/${LEVELS[currentLevelIdx].winsToAdvance}`;
     document.getElementById('game-card').classList.add('matched');
     arrowDir = 0;
+
+    // Record min time on level completion (for leaderboard)
+    if (levelWins >= LEVELS[currentLevelIdx].winsToAdvance) {
+      const elapsed = getLevelElapsed();
+      const key = currentLevelIdx;
+      if (!personalBests[key]) personalBests[key] = {};
+      if (typeof personalBests[key].bestTime !== 'number' || elapsed < personalBests[key].bestTime) {
+        personalBests[key].bestTime = elapsed;
+        savePersonalBests();
+      }
+      highestLevelReached = Math.max(highestLevelReached, currentLevelIdx + 1);
+      saveHighestLevel();
+      updateBestDisplay();
+    }
+
     setTimeout(() => {
       if (!gameOn) return;
       const lvl = LEVELS[currentLevelIdx];
@@ -574,6 +624,8 @@ function updateGameStats() {
         levelWins = 0;
         applyLevelVisibility(LEVELS[currentLevelIdx]);
         updateBestDisplay();
+        startLevelTimer();
+        updateTimerDisplay();
       }
       newTarget();
     }, 1600);
@@ -599,10 +651,14 @@ document.getElementById('game-toggle').addEventListener('click', () => {
     applyLevelVisibility(LEVELS[currentLevelIdx]);
     newTarget();
     updateBestDisplay();
+    startLevelTimer();
+    updateTimerDisplay();
   } else {
     // Restore visibility when game off
     document.getElementById('tiles-section').style.display    = '';
     document.getElementById('matrix-user-card').style.display = '';
+    const tEl = document.getElementById('time-val');
+    if (tEl) tEl.textContent = '—';
   }
   drawAll();
 });
@@ -612,6 +668,8 @@ document.getElementById('restart-level-btn').addEventListener('click', () => {
   applyLevelVisibility(LEVELS[currentLevelIdx]);
   newTarget();
   updateBestDisplay();
+  startLevelTimer();
+  updateTimerDisplay();
 });
 document.getElementById('prev-level-btn').addEventListener('click', () => {
   if (currentLevelIdx > 0) {
@@ -620,15 +678,19 @@ document.getElementById('prev-level-btn').addEventListener('click', () => {
     applyLevelVisibility(LEVELS[currentLevelIdx]);
     newTarget();
     updateBestDisplay();
+    startLevelTimer();
+    updateTimerDisplay();
   }
 });
 document.getElementById('next-level-btn').addEventListener('click', () => {
-  if (currentLevelIdx < LEVELS.length - 1) {
+  if (currentLevelIdx < LEVELS.length - 1 && (currentLevelIdx + 1) <= highestLevelReached) {
     currentLevelIdx++;
     levelWins = 0;
     applyLevelVisibility(LEVELS[currentLevelIdx]);
     newTarget();
     updateBestDisplay();
+    startLevelTimer();
+    updateTimerDisplay();
   }
 });
 
@@ -1077,6 +1139,9 @@ function tick() {
     }
   }
   drawAll();
+  if (gameOn) {
+    updateTimerDisplay();
+  }
   requestAnimationFrame(tick);
 }
 
