@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4D Cube — Rotation Playground &amp; Match Game</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+  <style>
+    body { font-family: monospace; background: #fafafa; margin: 0; padding: 20px; color: #222; }
+    h1 { font-size: 14px; font-weight: normal; color: #666; margin: 0 0 14px; }
+    h2 { margin: 0 0 6px; font-size: 11px; font-weight: normal; color: #888;
+         text-transform: uppercase; letter-spacing: 0.5px; }
+
+    #root { display: flex; gap: 18px; align-items: flex-start; }
+    #left-col { display: flex; flex-direction: column; gap: 4px; flex: 0 1 auto; }
+    #views { display: flex; gap: 16px; align-items: flex-start; }
+    #tiles { display: flex; gap: 6px; flex-wrap: wrap; }
+    #panel { width: 360px; display: flex; flex-direction: column; gap: 12px; flex: 0 0 360px; }
+    #depth-legend {
+      background: white; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;
+      font-size: 10px; color: #555; font-family: monospace; margin: 2px 0;
+    }
+    #depth-legend .bar {
+      height: 10px; border-radius: 2px;
+      background: linear-gradient(to right,
+        hsl(240,85%,48%), hsl(180,85%,48%), hsl(120,85%,48%), hsl(60,85%,48%), hsl(0,85%,48%));
+    }
+    #depth-legend .ticks { display: flex; justify-content: space-between; margin-top: 2px; }
+    #depth-legend .title { text-align: center; margin-top: 1px; color: #777; }
+
+    .vbox { background: white; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+    .vbox > svg { display: block; }
+    .vbox > .caption { font-size: 11px; color: #666; margin-top: 4px; text-align: center; }
+    #cube-user { border: 2px solid #888; border-radius: 2px; }
+    #cube-target { border: 2px dashed #888; border-radius: 2px; }
+
+    .tile { position: relative; background: white; border: 1px solid #ddd; border-radius: 4px; padding: 2px; }
+    .tile-label { position: absolute; top: 3px; left: 5px; font-size: 10px; color: #777;
+                  background: rgba(255,255,255,0.8); padding: 0 3px; border-radius: 2px; }
+    .tile.active-a { border-color: #d33; border-width: 2px; padding: 1px; }
+    .tile.active-b { border-color: #36c; border-width: 2px; padding: 1px; }
+
+    .panel-card { background: white; padding: 10px 14px; border: 1px solid #ddd; border-radius: 4px; }
+    #interp { font-size: 16px; min-height: 1.4em; }
+    .dim { color: #999; }
+    .plane-a { color: #d33; font-weight: bold; }
+    .plane-b { color: #36c; font-weight: bold; }
+    .hint { font-size: 11px; color: #777; line-height: 1.4; }
+
+    .chips { display: flex; gap: 6px; margin: 6px 0 4px; }
+    .chip {
+      width: 34px; height: 34px; border: 1px solid #ccc; border-radius: 6px;
+      background: #f4f4f4; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer; user-select: none;
+    }
+    .chip:hover { background: #ececec; }
+    .chip.sel-a { background: #fce4e4; border-color: #d33; color: #d33; font-weight: bold; }
+    .chip.sel-b { background: #e4ecfc; border-color: #36c; color: #36c; font-weight: bold; }
+
+    button { font-family: monospace; padding: 4px 10px; cursor: pointer; }
+    button.primary { background: #36c; color: white; border: 1px solid #25a; }
+    button.primary:hover { background: #25a; }
+    #cmd { font-family: monospace; padding: 4px; width: 22ch; }
+    #cmd-status { min-height: 1.1em; margin-top: 4px; font-size: 11px; color: #555; }
+
+    .keys kbd { display: inline-block; padding: 0 5px; border: 1px solid #bbb;
+      border-bottom-width: 2px; border-radius: 3px; background: #f4f4f4; font-family: monospace; font-size: 10px; }
+
+    .matrix-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+                   background: #ccc; padding: 1px; font-size: 10px; }
+    .matrix-grid .cell { background: white; padding: 4px 2px; text-align: right; font-family: monospace;
+                         min-width: 42px; }
+    .matrix-row-label { font-size: 9px; color: #999; padding-right: 2px; }
+
+    #game-card { background: linear-gradient(135deg, #f6fbff 0%, #fff 100%); }
+    #game-card.matched { background: linear-gradient(135deg, #f0fdf0 0%, #d8f5d8 100%); }
+    #dist-bar { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin: 4px 0; }
+    #dist-bar-fill { height: 100%; background: #d33; transition: width 0.1s, background 0.1s; width: 100%; }
+    .stat { display: flex; justify-content: space-between; font-size: 12px; padding: 1px 0; }
+    .stat .label { color: #888; }
+    .stat .val { font-weight: bold; }
+
+    .toggle-game { display: inline-block; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <h1>4D cube — rotation playground &amp; match-the-target game
+    <button onclick="showHelp()" style="font-size:10px; margin-left:12px; padding:1px 6px; vertical-align:middle;">help &amp; math</button>
+  </h1>
+
+  <div id="root">
+    <div id="left-col">
+      <div id="views">
+        <div class="vbox">
+          <svg id="cube-user" width="320" height="320" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="caption" id="user-caption">generic 2-frame projection — all 4 axes mixed</div>
+        </div>
+        <div class="vbox" id="target-vbox" style="display:none">
+          <svg id="cube-target" width="320" height="320" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="caption">TARGET — match this</div>
+        </div>
+      </div>
+
+      <div id="depth-legend">
+        <div class="bar"></div>
+        <div class="ticks">
+          <span>0</span>
+          <span>√2 ≈ 1.41 (axis-aligned vertices)</span>
+          <span>2 (max)</span>
+        </div>
+        <div class="title">color = depth (distance from the 2D viewing plane, in 4-space)</div>
+      </div>
+
+      <div id="tiles-section">
+        <div style="font-size:11px; color:#666; margin-bottom:4px">
+          coordinate-plane projections — each picks out 2 of the 4 axes directly
+        </div>
+        <div id="tiles"></div>
+      </div>
+    </div>
+
+    <div id="panel">
+      <div class="panel-card">
+        <h2>state</h2>
+        <div id="interp"></div>
+      </div>
+
+      <div class="panel-card">
+        <h2>axis-pair selector (K<sub>4</sub>)</h2>
+        <svg id="k4" width="280" height="200" xmlns="http://www.w3.org/2000/svg"
+             style="display:block; margin:0 auto; background:#fafafa; border-radius:4px">
+          <g id="k4-edges"></g>
+          <g id="k4-nodes"></g>
+        </svg>
+        <div class="keys hint" style="margin-top:6px">
+          <b>Click an edge</b> (here) <b>or a coord-plane tile</b> → select that rotation plane<br>
+          <b>Shift-click</b> or <b>hold <kbd>-</kbd>+click</b> → negative coefficient (dashed)<br>
+          Click a selected edge with <b>Shift</b> or <b><kbd>-</kbd></b> → flip its sign<br>
+          <b><kbd>Tab</kbd></b> / <b><kbd>Shift</kbd>+<kbd>Tab</kbd></b> → cycle planes linearly<br>
+          Two disjoint edges = Clifford. Hold <kbd>←</kbd>/<kbd>→</kbd> to rotate. <kbd>Esc</kbd> clears.<br>
+          <b>Hold <kbd>0</kbd>–<kbd>3</kbd></b> for momentary override (held nodes glow yellow).<br>
+          <b>Hold <kbd>-</kbd></b> while overriding → use negative coefficient.
+        </div>
+        <div style="margin-top:10px">
+          <label style="font-size:11px; color:#666; display:flex; align-items:center; gap:8px">
+            <span>speed</span>
+            <input type="range" id="speed" min="0.05" max="3.0" step="0.05" value="1.5" style="flex:1">
+            <span id="speed-val" style="font-family:monospace; min-width:6ch; text-align:right">1.50°/f</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel-card" id="matrix-user-card">
+        <h2>user rotation matrix R</h2>
+        <div class="matrix-grid" id="matrix-user"></div>
+      </div>
+
+      <div class="panel-card" id="game-card">
+        <h2 style="display:flex;align-items:center">
+          match game
+          <button id="game-toggle" class="toggle-game">enable</button>
+        </h2>
+        <div id="game-body" style="display:none">
+          <div class="stat"><span class="label">level</span><span class="val" id="level-name">—</span></div>
+          <div class="stat"><span class="label">progress on level</span><span class="val" id="level-progress">0/3</span></div>
+          <div class="stat"><span class="label">total wins</span><span class="val" id="wins-val">0</span></div>
+          <div style="border-top:1px solid #eee; margin:8px 0"></div>
+          <div class="stat"><span class="label">distance</span><span class="val" id="dist-val">—</span></div>
+          <div id="dist-bar"><div id="dist-bar-fill"></div></div>
+          <div class="stat"><span class="label">par</span><span class="val" id="par-val">—</span></div>
+          <div class="stat"><span class="label">your degrees</span><span class="val" id="moves-val">0°</span></div>
+          <div class="stat"><span class="label">efficiency</span><span class="val" id="eff-val">—</span></div>
+          <div style="display:flex; gap:6px; margin-top:8px">
+            <button id="new-target-btn" class="primary">new target</button>
+            <button id="restart-level-btn">restart level</button>
+            <button id="prev-level-btn">←</button>
+            <button id="next-level-btn">→</button>
+          </div>
+          <div id="matrix-target-section">
+            <h2 style="margin-top:10px">target matrix</h2>
+            <div class="matrix-grid" id="matrix-target"></div>
+          </div>
+          <div class="hint" style="margin-top:6px">
+            Match when distance &lt; 0.10. <b>Par</b> = min degrees needed; <b>efficiency</b> = par ÷ your.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>command</h2>
+        <form id="cmd-form">
+          <input id="cmd" type="text"
+            placeholder="01 right · 0123 right · stop · reset"
+            autocomplete="off">
+          <button type="submit">go</button>
+          <button type="button" id="stop-btn">stop</button>
+          <button type="button" id="reset-btn">reset</button>
+        </form>
+        <div id="cmd-status"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============= Math: 4D linear algebra =============
+function identity4() { return [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]; }
+function matmul44(A, B) {
+  const C = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  for (let i=0;i<4;i++) for (let k=0;k<4;k++) {
+    const aik = A[i][k];
+    for (let j=0;j<4;j++) C[i][j] += aik * B[k][j];
+  }
+  return C;
+}
+function rotMat(i, j, angle) {
+  const M = identity4();
+  const c = Math.cos(angle), s = Math.sin(angle);
+  M[i][i] = c;  M[i][j] = -s;
+  M[j][i] = s;  M[j][j] =  c;
+  return M;
+}
+function transpose4(M) {
+  return [
+    [M[0][0], M[1][0], M[2][0], M[3][0]],
+    [M[0][1], M[1][1], M[2][1], M[3][1]],
+    [M[0][2], M[1][2], M[2][2], M[3][2]],
+    [M[0][3], M[1][3], M[2][3], M[3][3]],
+  ];
+}
+function applyR(R, V) {
+  return V.map(v => [
+    R[0][0]*v[0]+R[0][1]*v[1]+R[0][2]*v[2]+R[0][3]*v[3],
+    R[1][0]*v[0]+R[1][1]*v[1]+R[1][2]*v[2]+R[1][3]*v[3],
+    R[2][0]*v[0]+R[2][1]*v[1]+R[2][2]*v[2]+R[2][3]*v[3],
+    R[3][0]*v[0]+R[3][1]*v[1]+R[3][2]*v[2]+R[3][3]*v[3],
+  ]);
+}
+function frobenius(A, B) {
+  let s = 0;
+  for (let i=0;i<4;i++) for (let j=0;j<4;j++) s += (A[i][j]-B[i][j])**2;
+  return Math.sqrt(s);
+}
+
+// ============= Geometry =============
+const v_init = [];
+for (let i = 0; i < 16; i++) {
+  v_init.push([(i&1)?1:-1, (i&2)?1:-1, (i&4)?1:-1, (i&8)?1:-1]);
+}
+const edges = [];
+for (let a = 0; a < 16; a++) {
+  for (let b = a + 1; b < 16; b++) {
+    const diff = a ^ b;
+    if ((diff & (diff - 1)) === 0) edges.push([a, b]);
+  }
+}
+
+// Projection matrices (2×4) for views
+const mainProjection = [
+  [0.9098, 0.1300, 0.3882, 0.0683],
+  [0.3309, 0.2922, 0.5825, 0.6825],
+];
+const coordPlanes = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+function coordProjection(i, j) {
+  const m = [[0,0,0,0],[0,0,0,0]];
+  m[0][i] = 1;
+  m[1][j] = 1;
+  return m;
+}
+function project(verts, P) {
+  return verts.map(v => [
+    P[0][0]*v[0] + P[0][1]*v[1] + P[0][2]*v[2] + P[0][3]*v[3],
+    P[1][0]*v[0] + P[1][1]*v[1] + P[1][2]*v[2] + P[1][3]*v[3],
+  ]);
+}
+
+// ============= State =============
+let R_user    = identity4();
+let R_target  = identity4();
+let selOrder  = [];   // [i, j] or [i, j, k, l]: axes of selected edge(s) in click order
+let edgeSigns = [];   // parallel to edges: [s0] or [s0, s1] with values ±1
+let arrowDir  = 0;
+
+// Game state + level curriculum
+let gameOn = false;
+let movesTotalRadians = 0;
+let winsCount = 0;
+const MATCH_THRESHOLD = 0.10;
+let lastMatched = false;
+
+const LEVELS = [
+  { name: '1: single plane · all tools',  kind: 'single',   showTiles: true,  showMatrix: true,  winsToAdvance: 3 },
+  { name: '2: single plane · no matrix',  kind: 'single',   showTiles: true,  showMatrix: false, winsToAdvance: 3 },
+  { name: '3: single plane · no tiles',   kind: 'single',   showTiles: false, showMatrix: false, winsToAdvance: 3 },
+  { name: '4: Clifford · all tools',      kind: 'clifford', showTiles: true,  showMatrix: true,  winsToAdvance: 3 },
+  { name: '5: Clifford · no matrix',      kind: 'clifford', showTiles: true,  showMatrix: false, winsToAdvance: 3 },
+  { name: '6: Clifford · no tiles',       kind: 'clifford', showTiles: false, showMatrix: false, winsToAdvance: 3 },
+  { name: '7: generic · all tools',       kind: 'generic',  showTiles: true,  showMatrix: true,  winsToAdvance: 3 },
+];
+let currentLevelIdx = 0;
+let levelWins = 0;
+let currentParRad = 0;
+
+// ============= SVG setup =============
+const SVGNS = 'http://www.w3.org/2000/svg';
+// Each edge gets its own linear gradient so color can interpolate from
+// endpoint A's depth color to endpoint B's depth color along the line.
+function makeLines(svg, n, idPrefix) {
+  let defs = svg.querySelector('defs');
+  if (!defs) { defs = document.createElementNS(SVGNS, 'defs'); svg.appendChild(defs); }
+  const lines = [];
+  const gradients = [];
+  for (let i = 0; i < n; i++) {
+    const g = document.createElementNS(SVGNS, 'linearGradient');
+    g.setAttribute('id', `${idPrefix}-${i}`);
+    g.setAttribute('gradientUnits', 'userSpaceOnUse');
+    const s1 = document.createElementNS(SVGNS, 'stop'); s1.setAttribute('offset', '0%');   s1.setAttribute('stop-color', '#888');
+    const s2 = document.createElementNS(SVGNS, 'stop'); s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#888');
+    g.appendChild(s1); g.appendChild(s2);
+    defs.appendChild(g);
+
+    const ln = document.createElementNS(SVGNS, 'line');
+    ln.setAttribute('stroke', `url(#${idPrefix}-${i})`);
+    ln.setAttribute('stroke-width', '1.5');
+    svg.appendChild(ln);
+
+    lines.push(ln);
+    gradients.push({ g, s1, s2 });
+  }
+  return { lines, gradients };
+}
+const MAIN_SIZE = 320, MAIN_SCALE = 40, MAIN_OFFSET = MAIN_SIZE / 2;
+const mainUser   = makeLines(document.getElementById('cube-user'),   edges.length, 'gu');
+const mainTarget = makeLines(document.getElementById('cube-target'), edges.length, 'gt');
+
+const TILE_SIZE = 105, TILE_SCALE = 22, TILE_OFFSET = TILE_SIZE / 2;
+const tilesEl = document.getElementById('tiles');
+const tiles = coordPlanes.map(([i, j], idx) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'tile';
+  wrap.dataset.pair = `${i}${j}`;
+  wrap.style.cursor = 'pointer';
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', TILE_SIZE);
+  svg.setAttribute('height', TILE_SIZE);
+  wrap.appendChild(svg);
+  const label = document.createElement('div');
+  label.className = 'tile-label';
+  label.textContent = `(${i},${j})`;
+  wrap.appendChild(label);
+  tilesEl.appendChild(wrap);
+  // Clicking a tile selects/deselects its rotation plane (same semantics as K4 edge)
+  wrap.addEventListener('click', ev => {
+    clickEdge(i, j, ev.shiftKey || negateHeld);
+    updateUI();
+  });
+  const ml = makeLines(svg, edges.length, `t${idx}`);
+  return { wrap, svg, lines: ml.lines, gradients: ml.gradients, plane: [i, j], proj: coordProjection(i, j) };
+});
+
+// ============= Drawing =============
+// Color a vertex by depth = distance from the 2D viewing plane in 4D.
+// Tesseract vertices always have |v|² = 4, so max depth = 2; we scale on that.
+// Color scheme: HSL hue rotation. Depth 0 = deep blue (cool, "in the plane"),
+// max depth = saturated red (warm, "far from the plane"). Through cyan, green, yellow.
+const MAX_DEPTH = 2.0;
+function depthToColor(d) {
+  const t = Math.min(1, Math.max(0, d / MAX_DEPTH));
+  const hue = 240 * (1 - t);            // 240° (blue) → 0° (red)
+  return `hsl(${hue.toFixed(0)},85%,48%)`;
+}
+
+function drawWithDepth(group, verts4D, P, scale, offset) {
+  const { lines, gradients } = group;
+  const proj = [];
+  const depth = [];
+  for (const v of verts4D) {
+    const p0 = P[0][0]*v[0] + P[0][1]*v[1] + P[0][2]*v[2] + P[0][3]*v[3];
+    const p1 = P[1][0]*v[0] + P[1][1]*v[1] + P[1][2]*v[2] + P[1][3]*v[3];
+    proj.push([p0, p1]);
+    const v_sq = v[0]*v[0] + v[1]*v[1] + v[2]*v[2] + v[3]*v[3];
+    depth.push(Math.sqrt(Math.max(0, v_sq - p0*p0 - p1*p1)));
+  }
+  for (let k = 0; k < edges.length; k++) {
+    const e = edges[k];
+    const a = proj[e[0]], b = proj[e[1]];
+    const x1 = scale * a[0] + offset, y1 = scale * a[1] + offset;
+    const x2 = scale * b[0] + offset, y2 = scale * b[1] + offset;
+    lines[k].setAttribute('x1', x1);
+    lines[k].setAttribute('y1', y1);
+    lines[k].setAttribute('x2', x2);
+    lines[k].setAttribute('y2', y2);
+    const gr = gradients[k];
+    gr.g.setAttribute('x1', x1);
+    gr.g.setAttribute('y1', y1);
+    gr.g.setAttribute('x2', x2);
+    gr.g.setAttribute('y2', y2);
+    gr.s1.setAttribute('stop-color', depthToColor(depth[e[0]]));
+    gr.s2.setAttribute('stop-color', depthToColor(depth[e[1]]));
+  }
+}
+
+function drawAll() {
+  const v_user = applyR(R_user, v_init);
+  drawWithDepth(mainUser, v_user, mainProjection, MAIN_SCALE, MAIN_OFFSET);
+  for (const t of tiles) {
+    drawWithDepth(t, v_user, t.proj, TILE_SCALE, TILE_OFFSET);
+  }
+  if (gameOn) {
+    const v_t = applyR(R_target, v_init);
+    drawWithDepth(mainTarget, v_t, mainProjection, MAIN_SCALE, MAIN_OFFSET);
+  }
+  renderMatrix(R_user,   document.getElementById('matrix-user'));
+  if (gameOn) {
+    renderMatrix(R_target, document.getElementById('matrix-target'));
+    updateGameStats();
+  }
+}
+
+// ============= Matrix display =============
+function renderMatrix(M, el) {
+  el.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      const v = M[i][j];
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.textContent = (v >= 0 ? ' ' : '') + v.toFixed(2);
+      // Color by sign & magnitude
+      const mag = Math.min(1, Math.abs(v));
+      const alpha = mag * 0.35;
+      const color = v >= 0 ? `rgba(80,130,200,${alpha})` : `rgba(220,80,80,${alpha})`;
+      cell.style.background = color;
+      el.appendChild(cell);
+    }
+  }
+}
+
+// ============= Game logic =============
+function randomRotationMatrix(kind) {
+  let R = identity4();
+  let parRad = 0;
+  const planes = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+  if (kind === 'single') {
+    const [i, j] = planes[Math.floor(Math.random() * 6)];
+    const a = (Math.random() * 0.6 + 0.2) * Math.PI * (Math.random() < 0.5 ? 1 : -1);
+    R = rotMat(i, j, a);
+    parRad = Math.abs(a);
+  } else if (kind === 'clifford') {
+    const pairings = [[[0,1],[2,3]], [[0,2],[1,3]], [[0,3],[1,2]]];
+    const [[i,j],[k,l]] = pairings[Math.floor(Math.random()*3)];
+    const a1 = (Math.random() * 0.6 + 0.2) * Math.PI * (Math.random() < 0.5 ? 1 : -1);
+    const a2 = (Math.random() * 0.6 + 0.2) * Math.PI * (Math.random() < 0.5 ? 1 : -1);
+    R = matmul44(rotMat(k, l, a2), rotMat(i, j, a1));
+    parRad = Math.abs(a1) + Math.abs(a2);
+  } else {
+    let total = 0;
+    for (const [i, j] of planes) {
+      const a = (Math.random() - 0.5) * Math.PI * 0.8;
+      R = matmul44(rotMat(i, j, a), R);
+      total += Math.abs(a);
+    }
+    parRad = total * 0.55;  // approx: SO(4) canonical form has 2-plane par ≤ sum
+  }
+  return { R, parRad };
+}
+
+function applyLevelVisibility(level) {
+  document.getElementById('tiles-section').style.display = level.showTiles  ? '' : 'none';
+  document.getElementById('matrix-user-card').style.display  = level.showMatrix ? '' : 'none';
+  document.getElementById('matrix-target-section').style.display = level.showMatrix ? '' : 'none';
+  document.getElementById('level-name').textContent = level.name;
+  document.getElementById('level-progress').textContent = `${levelWins}/${level.winsToAdvance}`;
+}
+
+function newTarget() {
+  const level  = LEVELS[currentLevelIdx];
+  const result = randomRotationMatrix(level.kind);
+  R_target      = result.R;
+  currentParRad = result.parRad;
+  R_user        = identity4();
+  movesTotalRadians = 0;
+  lastMatched = false;
+  document.getElementById('game-card').classList.remove('matched');
+  drawAll();
+}
+
+function updateGameStats() {
+  const d = frobenius(R_user, R_target);
+  document.getElementById('dist-val').textContent = d.toFixed(3);
+  const yourDeg = movesTotalRadians * 180 / Math.PI;
+  const parDeg  = currentParRad * 180 / Math.PI;
+  document.getElementById('moves-val').textContent = yourDeg.toFixed(0) + '°';
+  document.getElementById('par-val').textContent   = parDeg.toFixed(0) + '°';
+  if (yourDeg > 0.5) {
+    const eff = Math.min(100, 100 * parDeg / yourDeg);
+    let stars = '';
+    if (eff >= 80)      stars = ' ★★★';
+    else if (eff >= 50) stars = ' ★★';
+    else if (eff >= 25) stars = ' ★';
+    document.getElementById('eff-val').textContent = eff.toFixed(0) + '%' + stars;
+  } else {
+    document.getElementById('eff-val').textContent = '—';
+  }
+  const pct = Math.max(0, Math.min(1, d / 2.83));
+  const fill = document.getElementById('dist-bar-fill');
+  fill.style.width = (pct * 100).toFixed(1) + '%';
+  if (d < MATCH_THRESHOLD) fill.style.background = '#3a3';
+  else if (d < 0.5)       fill.style.background = '#ca3';
+  else                    fill.style.background = '#d33';
+
+  if (d < MATCH_THRESHOLD && !lastMatched) {
+    lastMatched = true;
+    winsCount++;
+    levelWins++;
+    document.getElementById('wins-val').textContent = winsCount;
+    document.getElementById('level-progress').textContent =
+      `${levelWins}/${LEVELS[currentLevelIdx].winsToAdvance}`;
+    document.getElementById('game-card').classList.add('matched');
+    arrowDir = 0;
+    setTimeout(() => {
+      if (!gameOn) return;
+      const lvl = LEVELS[currentLevelIdx];
+      if (levelWins >= lvl.winsToAdvance && currentLevelIdx < LEVELS.length - 1) {
+        currentLevelIdx++;
+        levelWins = 0;
+        applyLevelVisibility(LEVELS[currentLevelIdx]);
+      }
+      newTarget();
+    }, 1600);
+  } else if (d >= MATCH_THRESHOLD) {
+    lastMatched = false;
+    document.getElementById('game-card').classList.remove('matched');
+  }
+}
+
+document.getElementById('game-toggle').addEventListener('click', () => {
+  gameOn = !gameOn;
+  document.getElementById('game-toggle').textContent = gameOn ? 'disable' : 'enable';
+  document.getElementById('target-vbox').style.display = gameOn ? '' : 'none';
+  document.getElementById('game-body').style.display = gameOn ? '' : 'none';
+  document.getElementById('user-caption').textContent = gameOn
+    ? 'YOUR rotation — match the target →'
+    : 'generic 2-frame projection — all 4 axes mixed';
+  if (gameOn) {
+    currentLevelIdx = 0;
+    levelWins = 0;
+    R_user = identity4();
+    movesTotalRadians = 0;
+    applyLevelVisibility(LEVELS[currentLevelIdx]);
+    newTarget();
+  } else {
+    // Restore visibility when game off
+    document.getElementById('tiles-section').style.display    = '';
+    document.getElementById('matrix-user-card').style.display = '';
+  }
+  drawAll();
+});
+document.getElementById('new-target-btn').addEventListener('click', newTarget);
+document.getElementById('restart-level-btn').addEventListener('click', () => {
+  levelWins = 0;
+  applyLevelVisibility(LEVELS[currentLevelIdx]);
+  newTarget();
+});
+document.getElementById('prev-level-btn').addEventListener('click', () => {
+  if (currentLevelIdx > 0) {
+    currentLevelIdx--;
+    levelWins = 0;
+    applyLevelVisibility(LEVELS[currentLevelIdx]);
+    newTarget();
+  }
+});
+document.getElementById('next-level-btn').addEventListener('click', () => {
+  if (currentLevelIdx < LEVELS.length - 1) {
+    currentLevelIdx++;
+    levelWins = 0;
+    applyLevelVisibility(LEVELS[currentLevelIdx]);
+    newTarget();
+  }
+});
+
+// ============= Input =============
+let dt = 1.5 * Math.PI / 180;
+let heldDigits = [];   // axes momentarily held; overrides persistent selection when length is 2 or 4
+let negateHeld = false;  // '-' or '_' currently held → acts like Shift modifier
+
+function isNegateKey(e) {
+  return e.key === '-' || e.key === '_'
+      || e.code === 'Minus' || e.code === 'NumpadSubtract';
+}
+// Robust digit detection: try .key first, then fall back to .code so that
+// Shift+digit (e.key=')!@#') and Numpad digits still map correctly.
+// Backtick (`) and its physical key (Backquote) also map to 0 — convenient for
+// alt layouts where ` sits where 0 would be on QWERTY.
+function digitFromEvent(e) {
+  if (e.key === '`' || e.key === '~') return 0;
+  if (e.code === 'Backquote') return 0;
+  if (e.key && e.key.length === 1 && e.key >= '0' && e.key <= '3') return parseInt(e.key);
+  if (e.code) {
+    let m = e.code.match(/^Digit([0-3])$/);
+    if (m) return parseInt(m[1]);
+    m = e.code.match(/^Numpad([0-3])$/);
+    if (m) return parseInt(m[1]);
+  }
+  return null;
+}
+
+// Linear cycle order through the 6 coord planes — lexicographic
+const PLANE_CYCLE = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+
+function cyclePlane(direction) {
+  let currentIdx = -1;
+  if (selOrder.length >= 2) {
+    const a = Math.min(selOrder[0], selOrder[1]);
+    const b = Math.max(selOrder[0], selOrder[1]);
+    currentIdx = PLANE_CYCLE.findIndex(p => p[0] === a && p[1] === b);
+  }
+  const newIdx = ((currentIdx + direction) % 6 + 6) % 6;
+  const [i, j] = PLANE_CYCLE[newIdx];
+  selOrder  = [i, j];
+  edgeSigns = [+1];
+  updateUI();
+}
+
+function handleKeydown(e) {
+  // Tab cycles through planes — handle before INPUT check so it works outside inputs
+  if (e.key === 'Tab' && (!e.target || e.target.tagName !== 'INPUT')) {
+    e.preventDefault();
+    cyclePlane(e.shiftKey ? -1 : +1);
+    return;
+  }
+  if (e.target && e.target.tagName === 'INPUT') return;
+  if (e.repeat) return;
+  const d = digitFromEvent(e);
+  if (d !== null) {
+    if (!heldDigits.includes(d)) heldDigits.push(d);
+
+    // Allow pressing numbers to select/build axes in the persistent selector (K4)
+    if (!selOrder.includes(d)) {
+      if (selOrder.length < 2) {
+        selOrder.push(d);
+        if (selOrder.length === 2) {
+          selOrder.sort((a,b)=>a-b);
+          edgeSigns = [+1];
+        }
+      } else if (selOrder.length === 2) {
+        // replace or extend to Clifford if possible
+        if (!selOrder.includes(d)) {
+          // start new or ignore; for simplicity reset to single then add
+          selOrder = [selOrder[1], d].sort((a,b)=>a-b);
+          edgeSigns = [+1];
+        }
+      }
+    }
+    updateUI();
+    return;
+  }
+  if (isNegateKey(e))                       { negateHeld = true; updateUI(); }
+  else if (e.key === 'Escape')              { selOrder = []; edgeSigns = []; updateUI(); }
+  else if (e.key === 'ArrowLeft')           { arrowDir = -1; updateUI(); }
+  else if (e.key === 'ArrowRight')          { arrowDir = +1; updateUI(); }
+}
+function handleKeyup(e) {
+  if (e.target && e.target.tagName === 'INPUT') return;
+  const d = digitFromEvent(e);
+  if (d !== null) {
+    const i = heldDigits.indexOf(d);
+    if (i >= 0) heldDigits.splice(i, 1);
+    updateUI();
+    return;
+  }
+  if (isNegateKey(e))                       { negateHeld = false; updateUI(); }
+  else if (e.key === 'ArrowLeft'  && arrowDir === -1) { arrowDir = 0; updateUI(); }
+  else if (e.key === 'ArrowRight' && arrowDir === +1) { arrowDir = 0; updateUI(); }
+}
+window.addEventListener('keydown', handleKeydown);
+window.addEventListener('keyup',   handleKeyup);
+
+// Effective selection: held keys override persistent when count is 2 or 4
+function effective() {
+  if (heldDigits.length === 2) {
+    const s = negateHeld ? -1 : +1;
+    return { axes: heldDigits.slice(), signs: [s], override: true };
+  }
+  if (heldDigits.length === 4) {
+    const s = negateHeld ? -1 : +1;
+    return { axes: heldDigits.slice(), signs: [s, s], override: true };
+  }
+  return { axes: selOrder.slice(), signs: edgeSigns.slice(), override: false };
+}
+
+// Speed slider
+const speedSlider = document.getElementById('speed');
+const speedVal    = document.getElementById('speed-val');
+speedSlider.addEventListener('input', e => {
+  const deg = parseFloat(e.target.value);
+  dt = deg * Math.PI / 180;
+  speedVal.textContent = deg.toFixed(2) + '°/f';
+});
+
+// ============= K4 graph: click edges to select planes =============
+const NODE_POS = {
+  0: { x:  60, y:  40 },
+  1: { x: 220, y:  40 },
+  2: { x:  60, y: 160 },
+  3: { x: 220, y: 160 },
+};
+const K4_EDGES = [
+  { pair: [0,1], type: 'line'  },
+  { pair: [2,3], type: 'line'  },
+  { pair: [0,2], type: 'line'  },
+  { pair: [1,3], type: 'line'  },
+  { pair: [0,3], type: 'curve', bend: -35 },  // bulges away from middle (up-right)
+  { pair: [1,2], type: 'curve', bend: -35 },  // bulges the other way (up-left)
+];
+function edgeKey(i, j) { return i < j ? `${i}${j}` : `${j}${i}`; }
+const edgePathFor = {};
+const nodeCircles = {};
+
+function buildK4() {
+  const edgesG = document.getElementById('k4-edges');
+  const nodesG = document.getElementById('k4-nodes');
+  for (const e of K4_EDGES) {
+    const [i, j] = e.pair;
+    const A = NODE_POS[i], B = NODE_POS[j];
+    let elem;
+    if (e.type === 'line') {
+      elem = document.createElementNS(SVGNS, 'line');
+      elem.setAttribute('x1', A.x); elem.setAttribute('y1', A.y);
+      elem.setAttribute('x2', B.x); elem.setAttribute('y2', B.y);
+    } else {
+      const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+      const dx = B.x - A.x, dy = B.y - A.y;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const nx = -dy / len, ny = dx / len;
+      const cx = mx + nx * e.bend, cy = my + ny * e.bend;
+      elem = document.createElementNS(SVGNS, 'path');
+      elem.setAttribute('d', `M ${A.x} ${A.y} Q ${cx} ${cy} ${B.x} ${B.y}`);
+    }
+    elem.setAttribute('stroke', '#c0c0c0');
+    elem.setAttribute('stroke-width', '5');
+    elem.setAttribute('stroke-linecap', 'round');
+    elem.setAttribute('fill', 'none');
+    elem.setAttribute('pointer-events', 'stroke');
+    elem.style.cursor = 'pointer';
+    elem.dataset.pair = edgeKey(i, j);
+    elem.addEventListener('click', (ev) => { clickEdge(i, j, ev.shiftKey || negateHeld); updateUI(); });
+    elem.addEventListener('mouseenter', () => {
+      if (!isEdgeSelected(i, j)) elem.setAttribute('stroke', '#999');
+    });
+    elem.addEventListener('mouseleave', () => updateK4Highlights());
+    edgesG.appendChild(elem);
+    edgePathFor[edgeKey(i, j)] = elem;
+  }
+  for (const [d, p] of Object.entries(NODE_POS)) {
+    const circ = document.createElementNS(SVGNS, 'circle');
+    circ.setAttribute('cx', p.x); circ.setAttribute('cy', p.y);
+    circ.setAttribute('r', 14);
+    circ.setAttribute('fill', 'white');
+    circ.setAttribute('stroke', '#555');
+    circ.setAttribute('stroke-width', '2');
+    const txt = document.createElementNS(SVGNS, 'text');
+    txt.setAttribute('x', p.x); txt.setAttribute('y', p.y + 5);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('font-size', '14');
+    txt.setAttribute('font-family', 'monospace');
+    txt.style.userSelect = 'none';
+    txt.style.pointerEvents = 'none';
+    txt.textContent = d;
+    nodesG.appendChild(circ); nodesG.appendChild(txt);
+    nodeCircles[parseInt(d)] = circ;
+  }
+}
+
+function selectedEdgeKeys() {
+  // The effective selection (held overrides persistent)
+  const eff = (typeof effective === 'function') ? effective()
+            : { axes: selOrder, signs: edgeSigns };
+  const out = [];
+  const a = eff.axes;
+  if (a.length >= 2) out.push(edgeKey(a[0], a[1]));
+  if (a.length === 4) out.push(edgeKey(a[2], a[3]));
+  return out;
+}
+function isEdgeSelected(i, j) {
+  return selectedEdgeKeys().includes(edgeKey(i, j));
+}
+
+function clickEdge(i, j, shift) {
+  const key = edgeKey(i, j);
+  const sel = selectedEdgeKeys();
+  const idx = sel.indexOf(key);
+  if (idx >= 0) {
+    // Already selected
+    if (shift) {
+      // Shift-click selected → flip sign, keep selection
+      edgeSigns[idx] *= -1;
+      return;
+    }
+    // Plain click selected → deselect (promote B → A if needed)
+    if (idx === 0) {
+      selOrder  = selOrder.slice(2);
+      edgeSigns = edgeSigns.slice(1);
+    } else {
+      selOrder  = selOrder.slice(0, 2);
+      edgeSigns = edgeSigns.slice(0, 1);
+    }
+    return;
+  }
+  // Not currently selected — try to add (with sign)
+  const newSign = shift ? -1 : +1;
+  if (selOrder.length === 0) {
+    selOrder  = [i, j];
+    edgeSigns = [newSign];
+  } else if (selOrder.length === 2) {
+    if (selOrder.includes(i) || selOrder.includes(j)) {
+      flashReject(key);
+      return;
+    }
+    selOrder  = [...selOrder, i, j];
+    edgeSigns = [...edgeSigns, newSign];
+  } else {
+    flashReject(key);
+  }
+}
+
+function flashReject(key) {
+  const elem = edgePathFor[key];
+  if (!elem) return;
+  elem.setAttribute('stroke', '#d33');
+  elem.setAttribute('stroke-width', '7');
+  setTimeout(updateK4Highlights, 220);
+}
+
+function updateK4Highlights() {
+  const eff = (typeof effective === 'function') ? effective()
+            : { axes: selOrder, signs: edgeSigns, override: false };
+  for (const k in edgePathFor) {
+    const e = edgePathFor[k];
+    e.setAttribute('stroke', '#c0c0c0');
+    e.setAttribute('stroke-width', '5');
+    e.removeAttribute('stroke-dasharray');
+  }
+  const a = eff.axes;
+  const widthA = eff.override ? 8 : 7;
+  if (a.length >= 2) {
+    const kA = edgeKey(a[0], a[1]);
+    const e = edgePathFor[kA];
+    if (e) {
+      e.setAttribute('stroke', '#d33');
+      e.setAttribute('stroke-width', widthA);
+      if (eff.signs[0] < 0) e.setAttribute('stroke-dasharray', '8,5');
+    }
+  }
+  if (a.length === 4) {
+    const kB = edgeKey(a[2], a[3]);
+    const e = edgePathFor[kB];
+    if (e) {
+      e.setAttribute('stroke', '#36c');
+      e.setAttribute('stroke-width', widthA);
+      if (eff.signs[1] < 0) e.setAttribute('stroke-dasharray', '8,5');
+    }
+  }
+  // Held-node feedback: highlight each currently-pressed digit's node in real time
+  for (let d = 0; d < 4; d++) {
+    const c = nodeCircles[d];
+    if (!c) continue;
+    if (heldDigits.includes(d)) {
+      c.setAttribute('fill', '#fff3a8');     // pale yellow
+      c.setAttribute('stroke', '#a90');
+      c.setAttribute('stroke-width', '3');
+    } else {
+      c.setAttribute('fill', 'white');
+      c.setAttribute('stroke', '#555');
+      c.setAttribute('stroke-width', '2');
+    }
+  }
+}
+
+buildK4();
+
+// ============= Interp / chip / tile highlights =============
+const interpEl = document.getElementById('interp');
+function fmtPlane(i, j, cls) { return `<span class="${cls}">(${i}, ${j})</span>`; }
+function dirGlyph() { return arrowDir === 0 ? '·' : arrowDir > 0 ? '→' : '←'; }
+
+function updateUI() {
+  const eff = effective();
+  const n   = eff.axes.length;
+  const dir = dirGlyph();
+
+  updateK4Highlights();
+
+  for (const t of tiles) t.wrap.className = 'tile';
+  if (n >= 2) {
+    const [i, j] = [eff.axes[0], eff.axes[1]].sort((a,b)=>a-b);
+    const tA = tiles.find(t => t.plane[0]===i && t.plane[1]===j);
+    if (tA) tA.wrap.classList.add('active-a');
+  }
+  if (n === 4) {
+    const [k, l] = [eff.axes[2], eff.axes[3]].sort((a,b)=>a-b);
+    const tB = tiles.find(t => t.plane[0]===k && t.plane[1]===l);
+    if (tB) tB.wrap.classList.add('active-b');
+  }
+
+  function signed(idx, cls) {
+    const s = eff.signs[idx] < 0 ? '−' : '+';
+    return `<span class="${cls}">${s}(${eff.axes[idx*2]}, ${eff.axes[idx*2+1]})</span>`;
+  }
+  const ovHint = eff.override ? `<span class="dim"> [override]</span>` : '';
+  if (n === 2) {
+    interpEl.innerHTML = `Rotating in ${signed(0, 'plane-a')} &nbsp; ${dir}${ovHint}`;
+  } else if (n === 4) {
+    const sameSign = eff.signs[0] * eff.signs[1] > 0;
+    const kind = sameSign ? '[left-isoclinic]' : '[right-isoclinic]';
+    interpEl.innerHTML =
+      `${signed(0, 'plane-a')} <b>⊕</b> ${signed(1, 'plane-b')} &nbsp; ${dir}${ovHint}` +
+      `<div class="hint" style="margin-top:2px">Clifford ${kind}.</div>`;
+  } else if (n === 0) {
+    interpEl.innerHTML = `<span class="dim">idle</span> &nbsp; ${dir}`;
+  } else {
+    interpEl.innerHTML = `<span class="dim">${n} axes selected — need 2 or 4</span> &nbsp; ${dir}`;
+  }
+}
+
+// ============= Text command =============
+function parseDir(s) {
+  if (!s) return null;
+  const t = s.toLowerCase();
+  if (t==='+'||t==='right'||t==='r'||t==='>'||t==='→'||t==='cw')  return +1;
+  if (t==='-'||t==='left' ||t==='l'||t==='<'||t==='←'||t==='ccw') return -1;
+  return null;
+}
+function applyCommand(line) {
+  const parts = (line || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    const w = parts[0].toLowerCase();
+    if (w === 'stop' || w === 'halt') { selOrder=[]; edgeSigns=[]; arrowDir=0; updateUI(); return 'stopped'; }
+    if (w === 'reset') {
+      selOrder=[]; edgeSigns=[]; arrowDir=0; R_user = identity4(); movesTotalRadians = 0;
+      updateUI(); drawAll(); return 'reset';
+    }
+  }
+  if (parts.length !== 2) return 'usage: <digits> <dir>  |  stop  |  reset';
+  const digits = parts[0];
+  const dir = parseDir(parts[1]);
+  if (dir === null) return `bad direction "${parts[1]}"`;
+  if (!/^[0-3]+$/.test(digits)) return `digits must be 0-3, got "${digits}"`;
+  const arr = digits.split('').map(Number);
+  if (new Set(arr).size !== arr.length) return 'digits must be distinct';
+  if (arr.length !== 2 && arr.length !== 4) return `need 2 or 4 digits, got ${arr.length}`;
+  selOrder  = arr.slice();
+  edgeSigns = arr.length === 2 ? [+1] : [+1, +1];
+  arrowDir  = dir > 0 ? +1 : -1;
+  updateUI();
+  return 'ok';
+}
+window.applyCommand = applyCommand;
+window.clickEdge    = clickEdge;
+window.getState     = () => ({ digits: selOrder.slice(), signs: edgeSigns.slice(), dir: arrowDir, gameOn });
+window.getMatrices  = () => ({ R_user, R_target });
+window.getDistance  = () => frobenius(R_user, R_target);
+window.newTarget    = newTarget;
+
+document.getElementById('cmd-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const r = applyCommand(document.getElementById('cmd').value);
+  document.getElementById('cmd-status').textContent = r;
+});
+document.getElementById('stop-btn').addEventListener('click', () => {
+  selOrder=[]; edgeSigns=[]; arrowDir=0; updateUI();
+  document.getElementById('cmd-status').textContent = 'stopped';
+});
+document.getElementById('reset-btn').addEventListener('click', () => {
+  selOrder=[]; edgeSigns=[]; arrowDir=0; R_user = identity4(); movesTotalRadians = 0;
+  updateUI(); drawAll();
+  document.getElementById('cmd-status').textContent = 'reset';
+});
+
+// ============= Animation =============
+function tick() {
+  const eff = effective();
+  const n = eff.axes.length;
+  if (arrowDir !== 0) {
+    if (n === 2) {
+      const M = rotMat(eff.axes[0], eff.axes[1], dt * arrowDir * eff.signs[0]);
+      R_user = matmul44(M, R_user);
+      movesTotalRadians += Math.abs(dt);
+    } else if (n === 4) {
+      const M1 = rotMat(eff.axes[0], eff.axes[1], dt * arrowDir * eff.signs[0]);
+      const M2 = rotMat(eff.axes[2], eff.axes[3], dt * arrowDir * eff.signs[1]);
+      R_user = matmul44(M2, matmul44(M1, R_user));
+      movesTotalRadians += Math.abs(dt) * 2;
+    }
+  }
+  drawAll();
+  requestAnimationFrame(tick);
+}
+
+updateUI();
+drawAll();
+tick();
+
+// ============= Help & Math (in-browser tour + LaTeX) =============
+function showHelp() {
+  const modal = document.getElementById('help-modal');
+  if (modal) {
+    modal.style.display = 'block';
+    // Trigger MathJax render
+    if (window.MathJax) {
+      window.MathJax.typesetPromise && window.MathJax.typesetPromise();
+    }
+  }
+}
+
+function closeHelp() {
+  const modal = document.getElementById('help-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Close on escape or outside click
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'h' || e.key === 'H' || e.key === '?') {
+    const m = document.getElementById('help-modal');
+    if (m) m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+  }
+  if (e.key === 'Escape') {
+    const m = document.getElementById('help-modal');
+    if (m && m.style.display === 'block') m.style.display = 'none';
+  }
+});
+</script>
+
+<!-- Help modal -->
+<div id="help-modal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); width:90%; max-width:720px; background:white; border:2px solid #333; border-radius:8px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:9999; font-family:monospace; font-size:13px; color:#222; max-height:75vh; overflow:auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <strong style="font-size:14px;">Controls &amp; Mathematics</strong>
+    <button onclick="closeHelp()" style="font-size:12px;">Close (Esc)</button>
+  </div>
+
+  <div style="margin-bottom:12px; border-bottom:1px solid #ddd; padding-bottom:8px;">
+    <strong>Controls</strong><br>
+    • <b>Click</b> K₄ edges or tiles → select rotation plane (persistent)<br>
+    • <b>Shift-click</b> or <b>hold - + click</b> → negative sign (dashed)<br>
+    • <b>Tab / Shift+Tab</b> → cycle planes<br>
+    • <b>Hold 0–3</b> (or ` for 0) → momentary override (yellow highlight on nodes)<br>
+    • <b>Hold -</b> while overriding → negative for that plane<br>
+    • <b>← / →</b> → rotate (direction)<br>
+    • <b>Esc</b> → clear selection<br>
+    • Command box: e.g. <code>01 right</code>, <code>0123 left</code>, <code>stop</code>, <code>reset</code><br>
+    • <b>H</b> or <b>?</b> → toggle this help
+  </div>
+
+  <div>
+    <strong>Mathematics (LaTeX)</strong>
+    <p>The 4D rotation group SO(4) is generated by 6 planes: pairs from {0,1,2,3}.</p>
+    <p>A rotation in plane \((i,j)\) by angle \(\theta\) is the block matrix</p>
+    \[
+    R_{ij}(\theta) = 
+    \begin{pmatrix}
+    \cos\theta & -\sin\theta \\
+    \sin\theta & \cos\theta
+    \end{pmatrix}
+    \]
+    acting on coordinates \(i,j\) (identity elsewhere).
+
+    <p><b>Projection &amp; Depth</b></p>
+    For a projection matrix \(P : \mathbb{R}^4 \to \mathbb{R}^2\) and point \(v\):<br>
+    • 2D position = \( Pv \)<br>
+    • <b>Depth</b> = \( \sqrt{ \|v\|^2 - \|Pv\|^2 } \) (distance to the 2D viewing plane).<br>
+    Encoded as color: \(\text{hsl}(240 \cdot (1 - \text{depth}/2), 85\%, 48\%)\).
+
+    <p>Coordinate-plane tiles are special: for tile \((i,j)\), depth is exactly preserved under rotations in \((i,j)\) or its orthogonal complement.</p>
+
+    <p><b>Clifford pairs</b> (two disjoint planes) give isoclinic rotations (left or right depending on relative signs).</p>
+  </div>
+
+  <div style="margin-top:10px; font-size:11px; color:#666;">
+    Full tour and more in the source README (4DCubeVizGame/README.md).
+  </div>
+</div>
+
+</body>
+</html>
