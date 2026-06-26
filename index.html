@@ -291,8 +291,8 @@ function project(verts, P) {
 // ============= State =============
 let R_user    = identity4();
 let R_target  = identity4();
-let selOrder  = [];   // [i, j] or [i, j, k, l]: axes of selected edge(s) in click order
-let edgeSigns = [];   // parallel to edges: [s0] or [s0, s1] with values ±1
+let selOrder  = [0, 1];   // default to first plane so L/R buttons work immediately (user-facing 1-2)
+let edgeSigns = [+1];
 let arrowDir  = 0;
 
 // Game state + level curriculum
